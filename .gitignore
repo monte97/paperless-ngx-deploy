@@ -1,0 +1,16 @@
+# Environment variables
+.env
+
+# Docker data volumes
+data/
+media/
+export/
+consume/
+pgdata/
+
+# Backups
+backups/
+
+# OS generated files
+.DS_Store
+Thumbs.db
