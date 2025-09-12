@@ -40,18 +40,22 @@ services:
       - db
       - redis
     restart: unless-stopped
+    networks:
+      - paperless-net
 
   #---------------------------------------------------------------------
   # 2. Database (PostgreSQL)
   #    Stores all metadata and configuration for Paperless.
   #---------------------------------------------------------------------
   db:
-    image: postgres:15-alpine
+    image: postgres:17-alpine
     container_name: paperless-db
     volumes:
       - pgdata:/var/lib/postgresql/data
     env_file: .env
     restart: unless-stopped
+    networks:
+      - paperless-net
 
   #---------------------------------------------------------------------
   # 3. Redis
@@ -61,6 +65,8 @@ services:
     image: redis:7-alpine
     container_name: paperless-redis
     restart: unless-stopped
+    networks:
+      - paperless-net
 
   #---------------------------------------------------------------------
   # 4. Database Backup Service
@@ -81,6 +87,8 @@ services:
     depends_on:
       - db
     restart: unless-stopped
+    networks:
+      - paperless-net
     
   #---------------------------------------------------------------------
   # 5. Media Backup Service
@@ -98,6 +106,12 @@ services:
     command: >
       sh -c "echo '0 4 * * * tar -czf /backups/media-backup-$(date +\%Y\%m\%d).tar.gz -C / media' > /etc/crontabs/root && crond -f -d 8"
     restart: unless-stopped
+    networks:
+      - paperless-net
 
 volumes:
   pgdata:
+
+networks:
+  paperless-net:
+    driver: bridge
