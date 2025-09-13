@@ -73,7 +73,7 @@ services:
   #    Performs a daily backup of the PostgreSQL database.
   #---------------------------------------------------------------------
   db-backup:
-    image: prodrigest/postgres-backup-local
+    image: prodrigestivill/postgres-backup-local
     container_name: paperless-db-backup
     volumes:
       - ./backups:/backups
