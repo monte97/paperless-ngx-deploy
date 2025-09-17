@@ -2,14 +2,14 @@
 
 This repository provides a **production-ready Docker Compose** setup for deploying [Paperless-ngx](https://github.com/paperless-ngx/paperless-ngx), an open-source document management system.
 
-This configuration is designed to be **standalone, secure, and resilient**, including automated backup services for the database and your files.
+This configuration is designed to be **standalone, secure, and resilient**, with optional automated backup services for the database and your files.
 
 ## ✨ Features
 
 * **Containerized:** All services (Paperless-ngx, PostgreSQL, Redis) are containerized for a simple and isolated deployment.
-* **Automated Backups:**
+* **Optional Automated Backups:**
     * **Database:** Automatic daily backups of the PostgreSQL database.
-    * **Media:** Automatic daily backups of all your documents.
+    * **Media:** Automatic daily incremental backups of all your documents.
 * **Secure:** Uses an `.env` file to manage credentials and secret keys.
 * **Production-Ready:** Configurations are optimized for stability and performance.
 * **Comprehensive Documentation:** Includes clear procedures for deployment and disaster recovery.
@@ -59,11 +59,21 @@ This configuration is designed to be **standalone, secure, and resilient**, incl
 
 ### 2. Launch
 
-Once the setup is complete, start all services in the background:
+Once the setup is complete, you can start all services. By default, the backup services are **not** included.
 
+**To start without backups:**
 ```bash
 docker-compose up -d
 ```
+
+**To start with automated backups:**
+
+Use the `docker-compose.backup.yml` file to add the backup services:
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.backup.yml up -d
+```
+
+*Tip: You can use the provided `Makefile` for simpler commands (e.g., `make up` and `make up-with-backup`)*.
 
 ---
 
@@ -99,10 +109,10 @@ A `Makefile` is included to simplify common operations.
 
 ## 🗄️ Backup and Restore
 
-This setup includes two services for automated backups: one for the database and one for your media files (documents).
+This setup includes two optional services for automated backups, defined in `docker-compose.backup.yml`. You must launch them explicitly for backups to be created.
 
 *   **`db-backup`**: Performs a daily backup of the PostgreSQL database.
-*   **`media-backup`**: Creates a daily `.tar.gz` archive of the `media` directory.
+*   **`media-backup`**: Performs a daily incremental backup of the `media` directory using `rsync`.
 
 All backups are stored in the `./backups` directory on the host machine.
 
@@ -112,17 +122,15 @@ In the event of data loss or migration, follow these steps to restore your data.
 
 #### 1. Restore Media Files
 
-The media files are stored in `tar.gz` archives within the `backups` directory.
+The media files are backed up incrementally in the `backups/media` directory.
 
-1.  **Identify the backup file** you want to restore (e.g., `media-backup-YYYYMMDD.tar.gz`).
-2.  **Stop the running services** to prevent conflicts:
+1.  **Stop the running services** to prevent conflicts:
     ```bash
     make down
     ```
-3.  **Extract the archive** into the `media` directory. This will overwrite existing files if there are any.
+2.  **Use `rsync` to restore the files** from the backup directory to the `media` directory. This will overwrite existing files if there are any.
     ```bash
-    # Replace with the correct backup file name
-    tar -xvf backups/media-backup-YYYYMMDD.tar.gz -C media/
+    rsync -a backups/media/ media/
     ```
 
 #### 2. Restore Database

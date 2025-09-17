@@ -68,48 +68,7 @@ services:
     networks:
       - paperless-net
 
-  #---------------------------------------------------------------------
-  # 4. Database Backup Service
-  #    Performs a daily backup of the PostgreSQL database.
-  #---------------------------------------------------------------------
-  db-backup:
-    image: prodrigestivill/postgres-backup-local
-    container_name: paperless-db-backup
-    volumes:
-      - ./backups:/backups
-    env_file: .env
-    environment:
-      POSTGRES_HOST: db
-      # Runs the backup every day at 03:00 AM. Uses cron format.
-      SCHEDULE: "@daily"
-      # Keeps backups for the last 7 days.
-      BACKUP_KEEP_DAYS: 7
-    depends_on:
-      - db
-    restart: unless-stopped
-    networks:
-      - paperless-net
-    
-  #---------------------------------------------------------------------
-  # 5. Media Backup Service
-  #    Performs a daily backup of the 'media' folder.
-  #---------------------------------------------------------------------
-  media-backup:
-    image: alpine:latest
-    container_name: paperless-media-backup
-    volumes:
-      # Mount the media folder as read-only for safety
-      - ./media:/media:ro
-      # Mount the backups folder to save the archive
-      - ./backups:/backups
-    # Script to create a daily tar.gz archive
-    command: >
-      sh -c "echo '0 4 * * * tar -czf /backups/media-backup-$(date +\%Y\%m\%d).tar.gz -C / media' > /etc/crontabs/root && crond -f -d 8"
-    restart: unless-stopped
-    networks:
-      - paperless-net
-
-volumes:
+  volumes:
   pgdata:
 
 networks:
