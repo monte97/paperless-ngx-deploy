@@ -3,13 +3,11 @@ version: '3.8'
 services:
   #---------------------------------------------------------------------
   # 1. Paperless-ngx Webserver
-  #    This is the main application.
   #---------------------------------------------------------------------
   webserver:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless-webserver
     ports:
-      # The host port is now configurable via the .env file
       - "${PAPERLESS_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000"]
@@ -21,21 +19,19 @@ services:
       - ./media:/usr/src/paperless/media
       - ./export:/usr/src/paperless/export
       - ./consume:/usr/src/paperless/consume
-    env_file: .env
     environment:
-      # Ensure the UID/GID matches your host user to avoid permission issues.
-      # You can find them with the `id -u` and `id -g` commands.
-      USERMAP_UID: 1000
-      USERMAP_GID: 1000
-      # This URL should point to the externally accessible address.
-      # It will now use the PAPERLESS_PORT variable.
-      PAPERLESS_URL: http://localhost:${PAPERLESS_PORT:-8000}
-      # Connection to Redis
-      PAPERLESS_REDIS: redis://redis:6379
-      # Connection to the database
+      # --- I valori vengono letti dal file .env o dalla shell ---
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
       PAPERLESS_DBHOST: db
-      # Number of task workers
-      PAPERLESS_TASK_WORKERS: ${PAPERLESS_TASK_WORKERS:-2}
+      PAPERLESS_REDIS: redis://redis:6379
+      PAPERLESS_DBNAME: ${POSTGRES_DB}
+      PAPERLESS_DBUSER: ${POSTGRES_USER}
+      PAPERLESS_DBPASS: ${POSTGRES_PASSWORD}
+      # UID e GID letti dal file .env
+      USERMAP_UID: ${USERMAP_UID:-1000}
+      USERMAP_GID: ${USERMAP_GID:-1000}
     depends_on:
       - db
       - redis
@@ -45,21 +41,23 @@ services:
 
   #---------------------------------------------------------------------
   # 2. Database (PostgreSQL)
-  #    Stores all metadata and configuration for Paperless.
   #---------------------------------------------------------------------
   db:
     image: postgres:17-alpine
     container_name: paperless-db
     volumes:
       - pgdata:/var/lib/postgresql/data
-    env_file: .env
+    environment:
+      # Carica le variabili dal file .env per coerenza
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     restart: unless-stopped
     networks:
       - paperless-net
 
   #---------------------------------------------------------------------
   # 3. Redis
-  #    Used as a message broker for background tasks.
   #---------------------------------------------------------------------
   redis:
     image: redis:8-alpine
@@ -68,9 +66,11 @@ services:
     networks:
       - paperless-net
 
-  volumes:
+# --- CORREZIONE: `volumes` è ora al livello corretto (non indentato) ---
+volumes:
   pgdata:
 
+# --- CORREZIONE: `networks` è ora al livello corretto (non indentato) ---
 networks:
   paperless-net:
     driver: bridge
