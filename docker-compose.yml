@@ -2,12 +2,13 @@ version: '3.8'
 
 services:
   #---------------------------------------------------------------------
-  # 1. Paperless-ngx Webserver
+  # 1. Paperless-ngx Webserver and Worker
   #---------------------------------------------------------------------
   webserver:
     image: ghcr.io/paperless-ngx/paperless-ngx:latest
     container_name: paperless-webserver
     ports:
+      # Maps host port (default 8000) to container port 8000
       - "${PAPERLESS_PORT:-8000}:8000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000"]
@@ -15,12 +16,14 @@ services:
       timeout: 10s
       retries: 5
     volumes:
+      # Data storage for Paperless
       - ./data:/usr/src/paperless/data
       - ./media:/usr/src/paperless/media
       - ./export:/usr/src/paperless/export
+      # Directory for consuming new documents
       - ./consume:/usr/src/paperless/consume
     environment:
-      # --- I valori vengono letti dal file .env o dalla shell ---
+      # --- Values are read from the .env file or the shell ---
       PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
@@ -29,7 +32,7 @@ services:
       PAPERLESS_DBNAME: ${POSTGRES_DB}
       PAPERLESS_DBUSER: ${POSTGRES_USER}
       PAPERLESS_DBPASS: ${POSTGRES_PASSWORD}
-      # UID e GID letti dal file .env
+      # UID and GID read from .env file for volume permissions
       USERMAP_UID: ${USERMAP_UID:-1000}
       USERMAP_GID: ${USERMAP_GID:-1000}
     depends_on:
@@ -46,9 +49,10 @@ services:
     image: postgres:17-alpine
     container_name: paperless-db
     volumes:
+      # Persistent storage for PostgreSQL data
       - pgdata:/var/lib/postgresql/data
     environment:
-      # Carica le variabili dal file .env per coerenza
+      # Loads variables from the .env file for database consistency
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -57,7 +61,7 @@ services:
       - paperless-net
 
   #---------------------------------------------------------------------
-  # 3. Redis
+  # 3. Redis (Broker for the task queue)
   #---------------------------------------------------------------------
   redis:
     image: redis:8-alpine
@@ -66,11 +70,16 @@ services:
     networks:
       - paperless-net
 
-# --- CORREZIONE: `volumes` è ora al livello corretto (non indentato) ---
+#---------------------------------------------------------------------
+# Top-level Volumes definition
+#---------------------------------------------------------------------
 volumes:
+  # Used by the PostgreSQL service for persistent database storage
   pgdata:
 
-# --- CORREZIONE: `networks` è ora al livello corretto (non indentato) ---
+#---------------------------------------------------------------------
+# Top-level Networks definition
+#---------------------------------------------------------------------
 networks:
   paperless-net:
     driver: bridge
